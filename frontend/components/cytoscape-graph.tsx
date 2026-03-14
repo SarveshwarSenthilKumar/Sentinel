@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import cytoscape from "cytoscape";
-import { Maximize2 } from "lucide-react";
+import { Maximize2, ZoomIn, ZoomOut, Move } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import type { GraphResponse } from "@/lib/types";
@@ -15,10 +15,34 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cytoscapeRef = useRef<any>(null);
   const { resolvedTheme } = useTheme();
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
 
   const handleRefocus = () => {
     if (cytoscapeRef.current) {
       cytoscapeRef.current.fit(undefined, 50);
+      setZoomLevel(cytoscapeRef.current.zoom());
+    }
+  };
+
+  const handleZoomIn = () => {
+    if (cytoscapeRef.current) {
+      cytoscapeRef.current.zoom(cytoscapeRef.current.zoom() * 1.2);
+      setZoomLevel(cytoscapeRef.current.zoom());
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (cytoscapeRef.current) {
+      cytoscapeRef.current.zoom(cytoscapeRef.current.zoom() * 0.8);
+      setZoomLevel(cytoscapeRef.current.zoom());
+    }
+  };
+
+  const togglePanning = () => {
+    setIsPanning(!isPanning);
+    if (cytoscapeRef.current) {
+      cytoscapeRef.current.userPanningEnabled(!isPanning);
     }
   };
 
@@ -28,8 +52,8 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
       style: {
         label: "data(label)",
         "text-wrap": "wrap",
-        "text-max-width": "110px",
-        "font-size": "12px",
+        "text-max-width": "120px",
+        "font-size": "13px",
         "font-family": "Avenir Next, Segoe UI, sans-serif",
         color: "#1e293b",
         "text-valign": "top",
@@ -41,8 +65,8 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
         "background-color": "#f8fafc",
         "border-width": "2px",
         "border-color": "#cbd5e1",
-        width: 56,
-        height: 56,
+        width: 64,
+        height: 64,
         "text-outline-color": "#ffffff",
         "text-outline-width": 2,
       },
@@ -160,8 +184,8 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
       style: {
         label: "data(label)",
         "text-wrap": "wrap",
-        "text-max-width": "110px",
-        "font-size": "12px",
+        "text-max-width": "120px",
+        "font-size": "13px",
         "font-family": "Avenir Next, Segoe UI, sans-serif",
         color: "#f8fafc",
         "text-valign": "top",
@@ -173,8 +197,8 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
         "background-color": "#334155",
         "border-width": "2px",
         "border-color": "#475569",
-        width: 56,
-        height: 56,
+        width: 64,
+        height: 64,
       },
     },
     {
@@ -294,19 +318,31 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
       elements: [...graph.nodes, ...graph.edges],
       layout: {
         name: "cose",
-        padding: 36,
-        animate: false,
+        padding: 50,
+        animate: true,
+        animationDuration: 1000,
         fit: true,
-        nodeRepulsion: 160000,
-        idealEdgeLength: 140,
-        edgeElasticity: 90,
-        nestingFactor: 0.7,
-        gravity: 0.45,
+        nodeRepulsion: 200000,
+        idealEdgeLength: 160,
+        edgeElasticity: 100,
+        nestingFactor: 0.8,
+        gravity: 0.5,
+        randomize: false,
       },
       style: styles as any,
     });
 
     cytoscapeRef.current = instance;
+
+    // Enable user interactions
+    instance.userPanningEnabled(true);
+    instance.userZoomingEnabled(true);
+    instance.boxSelectionEnabled(true);
+    
+    // Update zoom level on zoom events
+    instance.on('zoom', () => {
+      setZoomLevel(instance.zoom());
+    });
 
     return () => {
       instance.destroy();
@@ -316,14 +352,51 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
   return (
     <div className="relative">
       <div ref={containerRef} className="h-[520px] w-full rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
-      <button
-        onClick={handleRefocus}
-        className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white/70 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-        aria-label="Refocus graph"
-        title="Refocus graph"
-      >
-        <Maximize2 className="h-4 w-4" />
-      </button>
+      
+      {/* Zoom Controls */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2">
+        <button
+          onClick={handleZoomIn}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white/70 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
+          aria-label="Zoom in"
+          title="Zoom in"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white/70 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
+          aria-label="Zoom out"
+          title="Zoom out"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </button>
+        <button
+          onClick={togglePanning}
+          className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
+            isPanning 
+              ? 'bg-blue-500 border-blue-500 text-white' 
+              : 'border-slate-300 dark:border-slate-600 bg-white/70 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+          }`}
+          aria-label="Toggle panning"
+          title={isPanning ? 'Panning enabled' : 'Enable panning'}
+        >
+          <Move className="h-4 w-4" />
+        </button>
+        <button
+          onClick={handleRefocus}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white/70 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
+          aria-label="Refocus graph"
+          title="Refocus graph"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </button>
+      </div>
+      
+      {/* Zoom Level Indicator */}
+      <div className="absolute bottom-4 left-4 rounded-lg border border-slate-300 dark:border-slate-600 bg-white/70 dark:bg-slate-800/70 px-3 py-2 text-xs text-slate-600 dark:text-slate-400">
+        Zoom: {Math.round(zoomLevel * 100)}%
+      </div>
     </div>
   );
 }
