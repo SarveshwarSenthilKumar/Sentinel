@@ -39,8 +39,22 @@ class TransactionEngine:
         )
 
         self.account_devices = defaultdict(lambda: [self._device_id()])
+        self.account_ips = defaultdict(lambda: [self._ip_address()])
         self.account_history = defaultdict(list)
         self.transactions: list[dict] = []
+
+    def inject_scenario(self, name: str) -> list[dict]:
+        handlers = {
+            "normal": self._generate_normal_scenario,
+            "account_takeover": self._generate_account_takeover_scenario,
+            "laundering_ring": self._generate_ring,
+            "smurfing_burst": self._generate_smurfing_burst_scenario,
+        }
+        handler = handlers.get(name)
+        if handler is None:
+            raise KeyError(name)
+        batch = handler()
+        return batch if isinstance(batch, list) else [batch]
 
     def seed(self, count: int = 60) -> list[dict]:
         seeded: list[dict] = []
@@ -121,6 +135,7 @@ class TransactionEngine:
         self.sequence += 1
         tx_time = self._advance_time()
         sender_devices = self.account_devices[sender]
+        sender_ips = self.account_ips[sender]
         if shared_device:
             device_id = shared_device
         elif force_new_device or self.random.random() < 0.09:
@@ -131,10 +146,18 @@ class TransactionEngine:
 
         if shared_ip:
             ip_address = shared_ip
-        elif force_new_ip:
+        elif force_new_ip or self.random.random() < 0.12:
             ip_address = self._ip_address()
+            sender_ips.append(ip_address)
         else:
-            ip_address = self._ip_address()
+            ip_address = self.random.choice(sender_ips)
+
+        if shared_ip:
+            ip_seen_before = shared_ip in sender_ips
+        elif force_new_ip:
+            ip_seen_before = ip_address in sender_ips[:-1]
+        else:
+            ip_seen_before = ip_address in sender_ips
 
         geo_lat, geo_lon = self._geo_for_country(ip_country)
         sender_avg = self._sender_avg_amount_30d(sender)
@@ -163,7 +186,7 @@ class TransactionEngine:
             "sender_txn_count_24h": None,
             "sender_unique_receivers_24h": None,
             "device_seen_before": device_id in sender_devices[:-1] if force_new_device else device_id in sender_devices,
-            "ip_seen_before": not force_new_ip,
+            "ip_seen_before": ip_seen_before,
             "receiver_seen_before": any(
                 item["receiver_account"] == receiver for item in self.account_history[sender]
             ),
@@ -201,6 +224,63 @@ class TransactionEngine:
             force_new_device=True,
             force_new_ip=True,
         )
+
+    def _generate_normal_scenario(self) -> list[dict]:
+        return [
+            self._append_transaction(self._generate_normal_transaction())
+            for _ in range(5)
+        ]
+
+    def _generate_account_takeover_scenario(self) -> list[dict]:
+        sender, receiver = self._pick_normal_accounts()
+        foreign_country = self.random.choice(
+            [country for country in COUNTRIES if country != self.account_country[sender]]
+        )
+        batch: list[dict] = []
+        amounts = [4200.0, 11834.0]
+        for index, amount in enumerate(amounts):
+            self.current_time += timedelta(seconds=40 * index)
+            batch.append(
+                self._append_transaction(
+                    self._base_transaction(
+                        sender=sender,
+                        receiver=receiver,
+                        amount=amount,
+                        ip_country=foreign_country,
+                        transaction_type="transfer",
+                        tag="account-takeover",
+                        is_fraud=True,
+                        force_new_device=True,
+                        force_new_ip=True,
+                    )
+                )
+            )
+        return batch
+
+    def _generate_smurfing_burst_scenario(self) -> list[dict]:
+        sender = self.random.choice(self.accounts)
+        receivers = self.random.sample(self.accounts, 4)
+        shared_ip = self._ip_address()
+        batch: list[dict] = []
+        start_time = self.current_time
+        for index, receiver in enumerate(receivers):
+            self.current_time = start_time + timedelta(seconds=30 * index)
+            batch.append(
+                self._append_transaction(
+                    self._base_transaction(
+                        sender=sender,
+                        receiver=receiver,
+                        amount=9825.0 - (index * 75),
+                        ip_country=self.account_country[sender],
+                        transaction_type="transfer",
+                        tag="smurfing",
+                        is_fraud=True,
+                        force_new_ip=index == 0,
+                        shared_ip=shared_ip,
+                    )
+                )
+            )
+        return batch
 
     def _generate_ring(self) -> list[dict]:
         ring_size = self.random.randint(3, 5)
