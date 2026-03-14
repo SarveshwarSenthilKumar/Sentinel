@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { animate, createTimeline, stagger } from "animejs";
+import { ThemeToggle } from "./theme-toggle";
 
 const workflowSteps = [
   {
@@ -345,14 +346,19 @@ export function LandingPage() {
         />
 
         <div className="relative mx-auto max-w-[1160px] px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-          <div data-landing-reveal className="opacity-0">
-            <div>
-              <p className="text-xs uppercase tracking-[0.34em] text-muted dark:text-slate-400">
-                AI-native fraud defense
-              </p>
-              <p className="mt-3 font-serif text-[4.1rem] font-semibold leading-none text-ink sm:text-[4.8rem] lg:text-[5.2rem] dark:text-slate-100">
-                Sentinel
-              </p>
+          <div className="flex justify-between items-start">
+            <div data-landing-reveal className="opacity-0">
+              <div>
+                <p className="text-xs uppercase tracking-[0.34em] text-muted dark:text-slate-400">
+                  AI-native fraud defense
+                </p>
+                <p className="mt-3 font-serif text-[4.1rem] font-semibold leading-none text-ink sm:text-[4.8rem] lg:text-[5.2rem] dark:text-slate-100">
+                  Sentinel
+                </p>
+              </div>
+            </div>
+            <div data-landing-reveal className="opacity-0">
+              <ThemeToggle />
             </div>
           </div>
 
