@@ -21,7 +21,6 @@ python3 server.py
 ```
 
 Open `http://127.0.0.1:8000`.
-
 ## Evaluate
 
 Run synthetic precision and recall checks with:
@@ -30,7 +29,6 @@ Run synthetic precision and recall checks with:
 cd Fraud-Detection
 python3 evaluation.py --sample-size 300
 ```
-
 ## Demo controls
 
 - `Pause Live Stream`: freeze the live feed
