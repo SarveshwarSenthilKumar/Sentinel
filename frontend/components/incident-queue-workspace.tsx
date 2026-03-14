@@ -4,7 +4,11 @@ import Link from "next/link";
 import { startTransition, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
-import { getIncidentPanel, refreshIncidentQueue } from "@/lib/api";
+import {
+  getIncidentPanel,
+  refreshIncidentQueue,
+  triggerIncidentScenario,
+} from "@/lib/api";
 import type {
   IncidentPanelResponse,
   IncidentQueueResponse,
@@ -34,6 +38,12 @@ const decisionLabels: Record<LiveAction, string> = {
 const REFRESH_BATCH_SIZE = 6;
 const REFRESH_INTERVAL_MS = 15000;
 const PAGE_SIZE_OPTIONS = [6, 8, 12, 16];
+const SCENARIOS = [
+  { key: "normal", label: "Normal flow" },
+  { key: "account_takeover", label: "Account takeover" },
+  { key: "laundering_ring", label: "Laundering ring" },
+  { key: "smurfing_burst", label: "Smurfing burst" },
+] as const;
 
 type FilterValue = "all" | "block" | "hold" | "review";
 type SortValue = "risk" | "newest";
@@ -66,9 +76,11 @@ export function IncidentQueueWorkspace({
   const [isPanelLoading, setIsPanelLoading] = useState(false);
   const [isClosingPanel, setIsClosingPanel] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInjectingScenario, setIsInjectingScenario] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [queueError, setQueueError] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
+  const [lastScenario, setLastScenario] = useState<string | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
 
@@ -137,6 +149,35 @@ export function IncidentQueueWorkspace({
       );
     } finally {
       setIsRefreshing(false);
+    }
+  }
+
+  async function injectScenario(name: string) {
+    setIsInjectingScenario(true);
+
+    try {
+      const next = await triggerIncidentScenario(name);
+      setQueueError(null);
+      setLastScenario(name);
+
+      if (selectedIncidentId) {
+        const currentIds = new Set(queue.incidents.map((item) => item.incident_id));
+        const freshCount = next.incidents.filter(
+          (item) => !currentIds.has(item.incident_id),
+        ).length;
+
+        setPendingQueue(next);
+        setPendingThreatCount((current) => current + freshCount);
+        return;
+      }
+
+      setQueue(next);
+    } catch {
+      setQueueError(
+        "Scenario injection failed. Keep the backend running and try again.",
+      );
+    } finally {
+      setIsInjectingScenario(false);
     }
   }
 
@@ -379,6 +420,43 @@ export function IncidentQueueWorkspace({
                 tone="safe"
                 description="Visible suspicious transaction volume after all active filters are applied."
               />
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-[22px] border border-line/50 bg-canvas/76 px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted">
+                  Scenario injector
+                </p>
+                <p className="mt-1 text-sm text-muted">
+                  Keep the stream running and inject a known pattern to verify the model reacts the way you expect.
+                </p>
+              </div>
+              <span className="rounded-full border border-line bg-paper px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted">
+                {isInjectingScenario
+                  ? "Injecting..."
+                  : lastScenario
+                    ? `Last: ${lastScenario.replace(/_/g, " ")}`
+                    : "Ready"}
+              </span>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {SCENARIOS.map((scenario) => (
+                <button
+                  key={scenario.key}
+                  type="button"
+                  disabled={isInjectingScenario}
+                  onClick={() => {
+                    startTransition(() => {
+                      void injectScenario(scenario.key);
+                    });
+                  }}
+                  className="rounded-full border border-line bg-paper px-4 py-2 text-sm text-ink transition hover:bg-canvas disabled:cursor-wait disabled:opacity-60"
+                >
+                  {scenario.label}
+                </button>
+              ))}
             </div>
           </div>
 
