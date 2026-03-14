@@ -551,21 +551,23 @@ function InvestigationTrace() {
 
             <g
               data-trace-label="endpoint"
-              transform={`translate(${traceNodes.E.x + 34}, ${traceNodes.E.y - 6})`}
+              transform={`translate(${traceNodes.E.x}, ${traceNodes.E.y - 50})`}
               opacity="0"
             >
               <text
                 fontSize="10"
                 fill="rgba(226,232,240,0.86)"
                 style={{ letterSpacing: "0.18em" }}
+                textAnchor="middle"
               >
                 MULE CLUSTER
               </text>
               <text
-                y="18"
+                y="14"
                 fontSize="12"
                 fill="#F59E0B"
                 style={{ letterSpacing: "0.18em" }}
+                textAnchor="middle"
               >
                 BLOCKED
               </text>
