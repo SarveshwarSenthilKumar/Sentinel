@@ -78,12 +78,10 @@ export function TransactionChat({
 
   return (
     <CopilotChatPanel
-      eyebrow="Gemini copilot"
+      panelId="sentinel-assist"
+      eyebrow="Sentinel Assist"
       title="Ask about this transaction"
       helperText={helperText}
-      mode={mode}
-      modeActiveLabel="Live Gemini"
-      modeFallbackLabel="Fallback mode"
       evidenceLabel="grounded in Sentinel signals"
       messages={messages}
       suggestions={suggestions}

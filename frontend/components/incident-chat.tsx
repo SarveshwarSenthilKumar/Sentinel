@@ -75,12 +75,10 @@ export function IncidentChat({ incidentId, decision }: IncidentChatProps) {
 
   return (
     <CopilotChatPanel
-      eyebrow="Analyst copilot"
+      panelId="sentinel-assist"
+      eyebrow="Sentinel Assist"
       title="Ask about this incident"
       helperText={helperText}
-      mode={mode}
-      modeActiveLabel="Live Gemini"
-      modeFallbackLabel="Fallback mode"
       evidenceLabel="grounded in queue evidence"
       messages={messages}
       suggestions={suggestions}

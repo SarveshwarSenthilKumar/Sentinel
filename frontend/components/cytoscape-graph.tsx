@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import cytoscape from "cytoscape";
-import { Maximize2 } from "lucide-react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import type { GraphResponse } from "@/lib/types";
@@ -12,14 +12,103 @@ type CytoscapeGraphProps = {
 };
 
 export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const placeholderRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cytoscapeRef = useRef<any>(null);
   const { resolvedTheme } = useTheme();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [overlayStyle, setOverlayStyle] = useState<React.CSSProperties | null>(null);
+  const [placeholderHeight, setPlaceholderHeight] = useState<number | null>(null);
+
+  const TRANSITION_MS = 320;
 
   const handleRefocus = () => {
     if (cytoscapeRef.current) {
       cytoscapeRef.current.fit(undefined, 50);
     }
+  };
+
+  const fitGraphSoon = () => {
+    window.setTimeout(() => {
+      if (cytoscapeRef.current) {
+        cytoscapeRef.current.resize();
+        cytoscapeRef.current.fit(undefined, isFullscreen ? 90 : 50);
+      }
+    }, TRANSITION_MS + 20);
+  };
+
+  const enterFullscreen = () => {
+    if (!wrapperRef.current || isTransitioning || isFullscreen) {
+      return;
+    }
+
+    const rect = wrapperRef.current.getBoundingClientRect();
+    setPlaceholderHeight(rect.height);
+    setIsTransitioning(true);
+    setIsFullscreen(true);
+    setOverlayStyle({
+      position: "fixed",
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      zIndex: 60,
+    });
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setOverlayStyle({
+          position: "fixed",
+          top: 16,
+          left: 16,
+          width: window.innerWidth - 32,
+          height: window.innerHeight - 32,
+          zIndex: 60,
+        });
+      });
+    });
+
+    fitGraphSoon();
+    window.setTimeout(() => {
+      setIsTransitioning(false);
+    }, TRANSITION_MS);
+  };
+
+  const exitFullscreen = () => {
+    if (!isFullscreen || isTransitioning) {
+      return;
+    }
+
+    const targetRect = placeholderRef.current?.getBoundingClientRect();
+    if (!targetRect) {
+      setIsFullscreen(false);
+      setOverlayStyle(null);
+      setPlaceholderHeight(null);
+      return;
+    }
+
+    setIsTransitioning(true);
+    setOverlayStyle({
+      position: "fixed",
+      top: targetRect.top,
+      left: targetRect.left,
+      width: targetRect.width,
+      height: targetRect.height,
+      zIndex: 60,
+    });
+
+    window.setTimeout(() => {
+      setIsFullscreen(false);
+      setIsTransitioning(false);
+      setOverlayStyle(null);
+      setPlaceholderHeight(null);
+      if (cytoscapeRef.current) {
+        cytoscapeRef.current.resize();
+        cytoscapeRef.current.fit(undefined, 50);
+      }
+    }, TRANSITION_MS);
   };
 
   const getLightStyles = () => [
@@ -161,32 +250,39 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
         label: "data(label)",
         "text-wrap": "wrap",
         "text-max-width": "110px",
-        "font-size": "12px",
+        "font-size": "13px",
+        "font-weight": 700,
         "font-family": "Avenir Next, Segoe UI, sans-serif",
-        color: "#f8fafc",
+        color: "#ffffff",
         "text-valign": "top",
         "text-halign": "center",
-        "text-margin-y": -10,
-        "text-background-color": "#1e293b",
-        "text-background-opacity": 0.92,
-        "text-background-padding": "4px",
+        "text-margin-y": -12,
+        "text-background-color": "#0f172a",
+        "text-background-opacity": 0.96,
+        "text-background-padding": "6px",
         "background-color": "#334155",
         "border-width": "2px",
         "border-color": "#475569",
         width: 56,
         height: 56,
+        "text-border-color": "#0f172a",
+        "text-border-opacity": 1,
+        "text-border-width": 1,
+        "text-outline-color": "#0f172a",
+        "text-outline-width": 3,
       },
     },
     {
       selector: "edge",
       style: {
         label: "data(label)",
-        "font-size": "10px",
+        "font-size": "12px",
+        "font-weight": 700,
         "font-family": "Avenir Next, Segoe UI, sans-serif",
-        color: "#94a3b8",
-        "text-background-color": "#1e293b",
-        "text-background-opacity": 0.9,
-        "text-background-padding": "2px",
+        color: "#f8fafc",
+        "text-background-color": "#0f172a",
+        "text-background-opacity": 0.94,
+        "text-background-padding": "4px",
         "text-rotation": "autorotate",
         width: "3px",
         "line-color": "#475569",
@@ -195,6 +291,8 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
         "curve-style": "bezier",
         "arrow-scale": 0.9,
         opacity: 0.9,
+        "text-outline-color": "#0f172a",
+        "text-outline-width": 2,
       },
     },
     {
@@ -292,6 +390,8 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
     const instance = cytoscape({
       container: containerRef.current,
       elements: [...graph.nodes, ...graph.edges],
+      minZoom: 0.45,
+      maxZoom: 2.2,
       layout: {
         name: "cose",
         padding: 36,
@@ -313,17 +413,79 @@ export function CytoscapeGraph({ graph }: CytoscapeGraphProps) {
     };
   }, [graph, resolvedTheme]);
 
+  useEffect(() => {
+    if (!isFullscreen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        exitFullscreen();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isFullscreen, isTransitioning]);
+
   return (
-    <div className="relative">
-      <div ref={containerRef} className="h-[520px] w-full rounded-[24px] bg-[#fffdf9] dark:bg-[#1e293b]" />
-      <button
-        onClick={handleRefocus}
-        className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-canvas/70 text-ink transition-colors hover:bg-paper dark:bg-surface/70 dark:text-ink dark:hover:bg-surface"
-        aria-label="Refocus graph"
-        title="Refocus graph"
+    <>
+      {isFullscreen && placeholderHeight ? (
+        <div ref={placeholderRef} style={{ height: placeholderHeight }} />
+      ) : null}
+
+      {isFullscreen ? (
+        <div
+          className={`fixed inset-0 z-50 bg-[rgba(6,16,31,0.58)] backdrop-blur-[4px] transition-opacity duration-300 ${
+            isFullscreen ? "opacity-100" : "opacity-0"
+          }`}
+          onClick={exitFullscreen}
+        />
+      ) : null}
+
+      <div
+        ref={wrapperRef}
+        style={isFullscreen ? overlayStyle ?? undefined : undefined}
+        className={`relative overflow-hidden rounded-[24px] border border-line/70 bg-[#fffdf9] shadow-frame transition-[top,left,width,height,border-radius,box-shadow] duration-300 ease-out dark:bg-[#1b2638] ${
+          isFullscreen ? "z-[60] rounded-[28px] shadow-[0_28px_90px_rgba(0,0,0,0.42)]" : ""
+        }`}
       >
-        <Maximize2 className="h-4 w-4" />
-      </button>
-    </div>
+        <div
+          ref={containerRef}
+          className={`w-full ${isFullscreen ? "h-full min-h-[calc(100vh-2rem)]" : "h-[520px]"}`}
+        />
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          {isFullscreen ? (
+            <button
+              onClick={exitFullscreen}
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-canvas/82 px-4 text-sm text-ink transition-colors hover:bg-paper dark:bg-surface/82 dark:hover:bg-surface"
+              aria-label="Exit full screen"
+              title="Exit full screen"
+            >
+              <Minimize2 className="h-4 w-4" />
+              Exit full screen
+              <span className="rounded-full border border-line/70 px-2 py-0.5 text-[11px] uppercase tracking-[0.12em] text-muted">
+                Esc
+              </span>
+            </button>
+          ) : null}
+          <button
+            onClick={isFullscreen ? exitFullscreen : enterFullscreen}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-canvas/70 text-ink transition-colors hover:bg-paper dark:bg-surface/70 dark:text-ink dark:hover:bg-surface"
+            aria-label={isFullscreen ? "Exit full screen" : "Open full screen"}
+            title={isFullscreen ? "Exit full screen" : "Open full screen"}
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
