@@ -97,8 +97,8 @@ Set these environment variables in Render:
 - `FRONTEND_ORIGINS=https://your-vercel-app.vercel.app`
 - `OPENAI_API_KEY=...` (optional)
 - `OPENAI_MODEL=gpt-4o-mini` (optional)
+- `OPENAI_BASE_URL=https://vjioo4r1vyvcozuj.us-east-2.aws.endpoints.huggingface.cloud/v1` (optional)
 - `OPENAI_TIMEOUT_SECONDS=8` (optional)
-- `OPENAI_BASE_URL=https://.../v1` (optional if you are using the default backend base URL)
 
 Start command:
 
@@ -121,27 +121,14 @@ Set this environment variable in Vercel:
 3. Set `FRONTEND_ORIGINS` in Render to your Vercel frontend URL.
 4. Redeploy both if needed so the env vars are picked up.
 
-## AI Configuration
+## OpenAI
 
-AI explanations and copilot chat are optional for local development. If `OPENAI_API_KEY` is not set, Sentinel falls back to deterministic explanations and chat responses.
+OpenAI is optional for local development. If `OPENAI_API_KEY` is not set, Sentinel falls back to deterministic explanations.
 
-```bash
-export OPENAI_API_KEY=your_key_here
-export OPENAI_MODEL=gpt-4o-mini
+Include in `backend/.env` the following lines:
 ```
-
-Optional overrides:
-
-- `OPENAI_BASE_URL` for an OpenAI-compatible endpoint
-- `OPENAI_TIMEOUT_SECONDS` to tune request timeouts
-
-Example `.env`:
-
-```bash
-OPENAI_API_KEY=your_key_here
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_BASE_URL=https://vjioo4r1vyvcozuj.us-east-2.aws.endpoints.huggingface.cloud/v1
-OPENAI_TIMEOUT_SECONDS=8
+OPENAI_API_KEY="EMPTY"
+OPENAI_MODEL = "openai/gpt-oss-120b"
 ```
 
 ## Demo Cases

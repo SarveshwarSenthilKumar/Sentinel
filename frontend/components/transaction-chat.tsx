@@ -34,7 +34,7 @@ export function TransactionChat({
   const [input, setInput] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [suggestions, setSuggestions] = useState(INITIAL_PROMPTS);
-  const [mode, setMode] = useState<"gemini" | "fallback">("fallback");
+  const [mode, setMode] = useState<"openai" | "fallback">("fallback");
 
   async function sendMessage(message: string) {
     const trimmed = message.trim();
@@ -87,7 +87,9 @@ export function TransactionChat({
       suggestions={suggestions}
       input={input}
       isPending={isPending}
-      pendingLabel="Gemini is drafting a grounded answer..."
+      statusLabel={mode === "openai" ? "Live OpenAI" : "Fallback mode"}
+      statusTone={mode === "openai" ? "safe" : "review"}
+      pendingLabel="OpenAI is drafting a grounded answer..."
       placeholder="Ask why the transfer was flagged, what the graph means, or which signals mattered most."
       onInputChange={setInput}
       onSuggestionClick={sendMessage}
