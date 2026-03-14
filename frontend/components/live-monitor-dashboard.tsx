@@ -372,7 +372,7 @@ export function LiveMonitorDashboard({
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+      <section className="grid gap-6 xl:grid-cols-3 lg:grid-cols-2">
         <SectionCard title="Priority alerts" eyebrow={`Hot origin ${payload.stats.hot_country}`}>
           <div className="space-y-4">
             {filteredAlerts.length ? (
