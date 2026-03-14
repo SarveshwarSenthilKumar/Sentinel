@@ -7,10 +7,15 @@ from .config import FRONTEND_ORIGINS
 from .models import (
     ExplanationRequest,
     ExplanationResponse,
+    IncidentChatResponse,
+    IncidentDetailResponse,
+    IncidentPanelResponse,
+    IncidentQueueResponse,
     LiveMonitorPayload,
     TransactionChatRequest,
     TransactionChatResponse,
 )
+from .services.incidents import incident_service
 from .services.live_monitor import live_monitor_service
 from .services.sentinel import service
 
@@ -33,6 +38,52 @@ def healthcheck() -> dict[str, str]:
 @app.get("/api/dashboard/summary")
 def dashboard_summary():
     return service.get_dashboard_summary()
+
+
+@app.get("/api/incidents/queue", response_model=IncidentQueueResponse)
+def incidents_queue():
+    return incident_service.get_queue()
+
+
+@app.get("/api/incidents/refresh", response_model=IncidentQueueResponse)
+def incidents_refresh(batch: int = Query(default=4, ge=1, le=12)):
+    return incident_service.refresh_queue(batch_size=batch)
+
+
+@app.get("/api/incidents/{incident_id}/panel", response_model=IncidentPanelResponse)
+def incident_panel(incident_id: str):
+    try:
+        return incident_service.get_incident_panel(incident_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Incident not found.") from exc
+
+
+@app.get("/api/incidents/{incident_id}", response_model=IncidentDetailResponse)
+def incident_detail(incident_id: str):
+    try:
+        return incident_service.get_incident_detail(incident_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Incident not found.") from exc
+
+
+@app.get("/api/incidents/{incident_id}/graph")
+def incident_graph(incident_id: str):
+    try:
+        return incident_service.get_incident_graph(incident_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Incident not found.") from exc
+
+
+@app.post("/api/incidents/{incident_id}/chat", response_model=IncidentChatResponse)
+def incident_chat(incident_id: str, payload: TransactionChatRequest):
+    try:
+        return incident_service.chat_about_incident(
+            incident_id=incident_id,
+            message=payload.message,
+            history=[item.model_dump() for item in payload.history],
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Incident not found.") from exc
 
 
 @app.get("/api/transactions/feed")

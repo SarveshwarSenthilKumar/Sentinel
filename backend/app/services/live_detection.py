@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import math
 import random
-import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -131,6 +131,12 @@ class RingAlert:
     risk_score: float
     evidence: list[str]
     suspicious_funds_total: float
+
+
+def stable_ring_cluster_id(accounts: Sequence[str]) -> str:
+    fingerprint = "|".join(sorted(accounts))
+    digest = hashlib.sha1(fingerprint.encode("utf-8")).hexdigest()[:8]
+    return f"cluster-{digest}"
 
 
 class RuleEngine:
@@ -398,7 +404,7 @@ def detect_fraud_rings(transactions: Sequence[dict]) -> tuple[list[RingAlert], d
                 ]
                 avg_hop = sum(hop_seconds) / len(hop_seconds) if hop_seconds else 0.0
                 total_amount = sum(item["amount"] for item in cycle_txs)
-                cluster_id = f"cluster-{uuid.uuid4().hex[:8]}"
+                cluster_id = stable_ring_cluster_id(path_accounts)
                 evidence = ["circular transfer pattern detected"]
                 if avg_hop <= 120:
                     evidence.append(

@@ -17,37 +17,22 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="mx-auto min-h-screen max-w-7xl px-6 py-8 lg:px-10">
-          <header className="mb-10 flex flex-col gap-4 rounded-[30px] border border-line/70 bg-panel/85 px-6 py-5 shadow-frame lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto min-h-screen max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8">
+          <header className="mb-6 flex flex-col gap-4 rounded-[26px] border border-line/55 bg-surface/88 px-5 py-4 shadow-frame backdrop-blur lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-muted">
-                TD Fraud Intelligence Demo
+                Fraud analyst workspace
               </p>
-              <Link href="/" className="mt-2 block font-serif text-4xl text-ink">
+              <Link href="/" className="mt-2 block font-serif text-[2.2rem] text-ink">
                 Sentinel
               </Link>
             </div>
             <nav className="flex flex-wrap items-center gap-3 text-sm text-muted">
-              <Link className="rounded-full border border-line px-4 py-2 hover:bg-paper" href="/">
-                Dashboard
-              </Link>
               <Link
-                className="rounded-full border border-line px-4 py-2 hover:bg-paper"
-                href="/live"
+                className="rounded-full border border-line bg-canvas/70 px-4 py-2 hover:bg-paper"
+                href="/"
               >
-                Live Monitor
-              </Link>
-              <Link
-                className="rounded-full border border-line px-4 py-2 hover:bg-paper"
-                href="/cases/tx_blocked_001"
-              >
-                Flagged Case
-              </Link>
-              <Link
-                className="rounded-full border border-line px-4 py-2 hover:bg-paper"
-                href="/cases/tx_blocked_001/graph"
-              >
-                Graph View
+                Queue
               </Link>
             </nav>
           </header>

@@ -3,6 +3,10 @@ import type {
   BehaviorProfile,
   DashboardSummary,
   GraphResponse,
+  IncidentChatResponse,
+  IncidentDetailResponse,
+  IncidentPanelResponse,
+  IncidentQueueResponse,
   LiveMonitorPayload,
   ScoredTransaction,
   TransactionChatResponse,
@@ -25,6 +29,26 @@ async function getJson<T>(path: string): Promise<T> {
 
 export function getDashboardSummary(): Promise<DashboardSummary> {
   return getJson<DashboardSummary>("/api/dashboard/summary");
+}
+
+export function getIncidentQueue(): Promise<IncidentQueueResponse> {
+  return getJson<IncidentQueueResponse>("/api/incidents/queue");
+}
+
+export function refreshIncidentQueue(batch = 4): Promise<IncidentQueueResponse> {
+  return getJson<IncidentQueueResponse>(`/api/incidents/refresh?batch=${batch}`);
+}
+
+export function getIncidentPanel(id: string): Promise<IncidentPanelResponse> {
+  return getJson<IncidentPanelResponse>(`/api/incidents/${id}/panel`);
+}
+
+export function getIncidentDetail(id: string): Promise<IncidentDetailResponse> {
+  return getJson<IncidentDetailResponse>(`/api/incidents/${id}`);
+}
+
+export function getIncidentGraph(id: string): Promise<GraphResponse> {
+  return getJson<GraphResponse>(`/api/incidents/${id}/graph`);
 }
 
 export function getCaseDetail(id: string): Promise<ScoredTransaction> {
@@ -67,4 +91,23 @@ export async function postTransactionChat(
   }
 
   return response.json() as Promise<TransactionChatResponse>;
+}
+
+export async function postIncidentChat(
+  incidentId: string,
+  payload: { message: string; history: ChatMessage[] },
+): Promise<IncidentChatResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Chat request failed for ${incidentId}: ${response.status}`);
+  }
+
+  return response.json() as Promise<IncidentChatResponse>;
 }

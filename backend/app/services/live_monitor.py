@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import time
 from collections import Counter
+from dataclasses import dataclass
+from typing import Any
 
 from ..models import (
     LiveMonitorAlert,
@@ -28,20 +30,31 @@ from .live_detection import (
 from .live_simulation import TransactionEngine
 
 
+@dataclass
+class LiveMonitorSnapshot:
+    payload: LiveMonitorPayload
+    enriched: list[dict[str, Any]]
+    transaction_rows: list[LiveMonitorTransactionRow]
+
+
 class LiveMonitorService:
     def __init__(self) -> None:
         self.engine = TransactionEngine()
         self.rule_engine = RuleEngine()
         self.engine.seed(60)
+        self._latest_snapshot: LiveMonitorSnapshot | None = None
 
     def bootstrap(self) -> LiveMonitorPayload:
-        return self._build_payload()
+        return self._build_snapshot().payload
 
     def stream(self, batch_size: int = 6) -> LiveMonitorPayload:
         self.engine.next_batch(batch_size)
-        return self._build_payload()
+        return self._build_snapshot().payload
 
-    def _build_payload(self) -> LiveMonitorPayload:
+    def current_snapshot(self) -> LiveMonitorSnapshot:
+        return self._latest_snapshot or self._build_snapshot()
+
+    def _build_snapshot(self) -> LiveMonitorSnapshot:
         started = time.perf_counter()
         transactions = self.engine.recent_transactions(120)
 
@@ -224,13 +237,19 @@ class LiveMonitorService:
             total_latency_ms=total_latency_ms,
         )
 
-        return LiveMonitorPayload(
-            generated_at=enriched[-1]["timestamp"] if enriched else None,
-            stats=stats,
-            transactions=top_transactions,
-            alerts=top_alerts,
-            graph=graph,
+        snapshot = LiveMonitorSnapshot(
+            payload=LiveMonitorPayload(
+                generated_at=enriched[-1]["timestamp"] if enriched else None,
+                stats=stats,
+                transactions=top_transactions,
+                alerts=top_alerts,
+                graph=graph,
+            ),
+            enriched=enriched,
+            transaction_rows=transaction_rows,
         )
+        self._latest_snapshot = snapshot
+        return snapshot
 
     def _build_stats(
         self,

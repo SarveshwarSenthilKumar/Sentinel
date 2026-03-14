@@ -107,6 +107,97 @@ export type TransactionChatResponse = {
   mode: "gemini" | "fallback";
 };
 
+export type IncidentQueueStats = {
+  total_incidents: number;
+  blocked_count: number;
+  review_count: number;
+  hold_count: number;
+  monitored_transactions: number;
+  suspicious_volume: number;
+  average_latency_ms: number;
+};
+
+export type IncidentQueueItem = {
+  incident_id: string;
+  title: string;
+  decision: LiveAction;
+  severity: string;
+  overall_risk: number;
+  amount: number;
+  counterpart_label: string;
+  timeline_label: string;
+  top_reasons: string[];
+  summary: string;
+  generated_at: string;
+  type: "transaction" | "ring";
+};
+
+export type IncidentQueueResponse = {
+  generated_at: string | null;
+  stats: IncidentQueueStats;
+  incidents: IncidentQueueItem[];
+};
+
+export type IncidentPanelResponse = {
+  incident_id: string;
+  title: string;
+  decision: LiveAction;
+  severity: string;
+  overall_risk: number;
+  amount: number;
+  counterpart_label: string;
+  timeline_label: string;
+  transaction_risk: number;
+  behavior_risk: number;
+  network_risk: number;
+  top_reasons: string[];
+  explanation: string;
+  summary_bullets: string[];
+  recommended_action: string;
+  ai_mode: "gemini" | "fallback";
+};
+
+export type IncidentBehaviorProfile = {
+  subject_label: string;
+  baseline_login_to_transfer_sec: number;
+  current_login_to_transfer_sec: number;
+  expected_path: string[];
+  current_path: string[];
+  path_similarity: number;
+  new_device: boolean;
+  payee_added: boolean;
+};
+
+export type IncidentDetailResponse = {
+  incident_id: string;
+  title: string;
+  decision: LiveAction;
+  severity: string;
+  type: "transaction" | "ring";
+  amount: number;
+  counterpart_label: string;
+  timeline_label: string;
+  overall_risk: number;
+  transaction_risk: number;
+  behavior_risk: number;
+  network_risk: number;
+  reasons: string[];
+  transaction_anomalies: string[];
+  behavior_anomalies: string[];
+  network_anomalies: string[];
+  explanation: string;
+  summary_bullets: string[];
+  recommended_action: string;
+  ai_mode: "gemini" | "fallback";
+  behavior_profile: IncidentBehaviorProfile;
+};
+
+export type IncidentChatResponse = {
+  answer: string;
+  follow_ups: string[];
+  mode: "gemini" | "fallback";
+};
+
 export type LiveAction = "allow" | "review" | "hold" | "block";
 
 export type LiveMonitorStats = {

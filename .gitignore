@@ -26,6 +26,7 @@ data/*.csv
 # Build outputs
 dist/
 build/
+*.tsbuildinfo
 
 # Logs
 *.log

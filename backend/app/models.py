@@ -229,3 +229,94 @@ class LiveMonitorPayload(BaseModel):
     transactions: list[LiveMonitorTransactionRow] = Field(default_factory=list)
     alerts: list[LiveMonitorAlert] = Field(default_factory=list)
     graph: LiveMonitorGraph
+
+
+class IncidentQueueStats(BaseModel):
+    total_incidents: int
+    blocked_count: int
+    review_count: int
+    hold_count: int
+    monitored_transactions: int
+    suspicious_volume: float
+    average_latency_ms: float
+
+
+class IncidentQueueItem(BaseModel):
+    incident_id: str
+    title: str
+    decision: LiveAction
+    severity: str
+    overall_risk: float
+    amount: float
+    counterpart_label: str
+    timeline_label: str
+    top_reasons: list[str]
+    summary: str
+    generated_at: str
+    type: LiveAlertType
+
+
+class IncidentQueueResponse(BaseModel):
+    generated_at: str | None = None
+    stats: IncidentQueueStats
+    incidents: list[IncidentQueueItem] = Field(default_factory=list)
+
+
+class IncidentPanelResponse(BaseModel):
+    incident_id: str
+    title: str
+    decision: LiveAction
+    severity: str
+    overall_risk: float
+    amount: float
+    counterpart_label: str
+    timeline_label: str
+    transaction_risk: float
+    behavior_risk: float
+    network_risk: float
+    top_reasons: list[str]
+    explanation: str
+    summary_bullets: list[str] = Field(default_factory=list)
+    recommended_action: str
+    ai_mode: Literal["gemini", "fallback"] = "fallback"
+
+
+class IncidentBehaviorProfile(BaseModel):
+    subject_label: str
+    baseline_login_to_transfer_sec: int
+    current_login_to_transfer_sec: int
+    expected_path: list[str]
+    current_path: list[str]
+    path_similarity: float
+    new_device: bool
+    payee_added: bool
+
+
+class IncidentDetailResponse(BaseModel):
+    incident_id: str
+    title: str
+    decision: LiveAction
+    severity: str
+    type: LiveAlertType
+    amount: float
+    counterpart_label: str
+    timeline_label: str
+    overall_risk: float
+    transaction_risk: float
+    behavior_risk: float
+    network_risk: float
+    reasons: list[str]
+    transaction_anomalies: list[str]
+    behavior_anomalies: list[str]
+    network_anomalies: list[str]
+    explanation: str
+    summary_bullets: list[str] = Field(default_factory=list)
+    recommended_action: str
+    ai_mode: Literal["gemini", "fallback"] = "fallback"
+    behavior_profile: IncidentBehaviorProfile
+
+
+class IncidentChatResponse(BaseModel):
+    answer: str
+    follow_ups: list[str] = Field(default_factory=list)
+    mode: Literal["gemini", "fallback"] = "fallback"

@@ -1,12 +1,5 @@
-import { LiveMonitorDashboard } from "@/components/live-monitor-dashboard";
-import { getLiveMonitorBootstrap } from "@/lib/api";
+import { redirect } from "next/navigation";
 
-export default async function LiveMonitorPage() {
-  const initialData = await getLiveMonitorBootstrap();
-
-  return (
-    <main>
-      <LiveMonitorDashboard initialData={initialData} />
-    </main>
-  );
+export default function LivePage() {
+  redirect("/");
 }

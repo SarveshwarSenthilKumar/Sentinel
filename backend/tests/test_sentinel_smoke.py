@@ -1,3 +1,5 @@
+from app.services.incidents import IncidentService
+from app.services.live_detection import detect_fraud_rings
 from app.services.live_monitor import LiveMonitorService
 from app.services.sentinel import service
 
@@ -51,3 +53,34 @@ def test_live_monitor_stream_advances_latest_transaction():
     assert next_payload.generated_at is not None
     assert next_payload.generated_at >= initial_payload.generated_at
     assert next_payload.transactions[0].transaction_id != initial_payload.transactions[0].transaction_id
+
+
+def test_incident_queue_is_repeatable_and_non_empty():
+    incident_service = IncidentService()
+    queue = incident_service.get_queue()
+
+    assert queue.incidents
+    assert queue.stats.total_incidents == len(queue.incidents)
+
+
+def test_incident_panel_and_detail_share_same_id():
+    incident_service = IncidentService()
+    incident_id = incident_service.get_queue().incidents[0].incident_id
+
+    panel = incident_service.get_incident_panel(incident_id)
+    detail = incident_service.get_incident_detail(incident_id)
+
+    assert panel.incident_id == detail.incident_id == incident_id
+    assert detail.reasons
+
+
+def test_ring_cluster_ids_are_stable_for_same_transactions():
+    live_service = LiveMonitorService()
+    transactions = live_service.engine.recent_transactions(120)
+
+    first_alerts, _ = detect_fraud_rings(transactions)
+    second_alerts, _ = detect_fraud_rings(transactions)
+
+    assert [alert.cluster_id for alert in first_alerts] == [
+        alert.cluster_id for alert in second_alerts
+    ]
