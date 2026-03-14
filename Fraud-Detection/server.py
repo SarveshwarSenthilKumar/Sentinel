@@ -29,13 +29,20 @@ class FraudDemoService:
     def __init__(self) -> None:
         self.engine = TransactionEngine()
         self.rule_engine = RuleEngine()
+        self.active_scenario = None
         self.engine.seed(60)
 
     def bootstrap(self) -> Dict:
         return self._build_payload()
 
     def stream(self, batch_size: int = 6) -> Dict:
+        self.active_scenario = None
         self.engine.next_batch(batch_size)
+        return self._build_payload()
+
+    def scenario(self, name: str) -> Dict:
+        self.active_scenario = name
+        self.engine.play_scenario(name)
         return self._build_payload()
 
     def _build_payload(self) -> Dict:
@@ -181,6 +188,7 @@ class FraudDemoService:
 
         return {
             "generated_at": enriched[-1]["timestamp"] if enriched else None,
+            "active_scenario": self.active_scenario,
             "stats": stats,
             "transactions": top_transactions,
             "alerts": top_alerts,
@@ -277,11 +285,14 @@ class FraudRequestHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/api/health":
             return self._send_json({"status": "ok"})
-        if parsed.path == "/api/bootstrap":
+        if parsed.path in {"/api/bootstrap", "/api/live/bootstrap"}:
             return self._send_json(service.bootstrap())
-        if parsed.path == "/api/stream":
+        if parsed.path in {"/api/stream", "/api/live/stream"}:
             batch = int(parse_qs(parsed.query).get("batch", ["6"])[0])
             return self._send_json(service.stream(batch_size=max(1, min(batch, 12))))
+        if parsed.path == "/api/live/scenario":
+            scenario_name = parse_qs(parsed.query).get("name", ["normal"])[0]
+            return self._send_json(service.scenario(scenario_name))
         if parsed.path in {"/", "/index.html"}:
             self.path = "/index.html"
         return super().do_GET()

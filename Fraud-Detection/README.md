@@ -1,6 +1,6 @@
 # Fraud Detection
 
-Local demo website for a hackathon-style fraud monitoring system.
+Standalone fraud-model sandbox for the hackathon project.
 
 ## What it does
 
@@ -13,14 +13,6 @@ Local demo website for a hackathon-style fraud monitoring system.
 - Classifies every event into severity and action: `allow`, `review`, `hold`, or `block`
 - Explains alerts in plain language on the dashboard
 
-## Run locally
-
-```bash
-cd Fraud-Detection
-python3 server.py
-```
-
-Open `http://127.0.0.1:8000`.
 ## Evaluate
 
 Run synthetic precision and recall checks with:
@@ -29,14 +21,12 @@ Run synthetic precision and recall checks with:
 cd Fraud-Detection
 python3 evaluation.py --sample-size 300
 ```
-## Demo controls
-
-- `Pause Live Stream`: freeze the live feed
-- `Inject Suspicious Burst`: force a larger batch of new transactions to trigger alerts faster
-
 ## Files
 
-- `server.py`: local web server and JSON API
 - `simulation.py`: synthetic transaction generator using the normalized schema
 - `detection.py`: feature engineering, rule engine, anomaly scoring, network scoring, and decision logic
-- `static/`: dashboard UI
+- `evaluation.py`: quick synthetic precision / recall sanity check
+
+## Note
+
+The active website stack now lives in `backend/` and `frontend/`. This folder is kept for the model sandbox and evaluation utilities.

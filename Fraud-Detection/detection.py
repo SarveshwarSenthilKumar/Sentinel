@@ -150,9 +150,8 @@ def engineer_transaction_features(transactions: Sequence[Dict]) -> List[Dict]:
     receiver_histories = defaultdict(list)
     device_accounts = defaultdict(set)
     ip_accounts = defaultdict(set)
-    beneficiary_histories = defaultdict(list)
-    tx_by_sender_receiver = defaultdict(list)
     last_sender_geo = {}
+    account_flow_state = {}
 
     enriched = []
     for tx in sorted(transactions, key=lambda item: item["timestamp"]):
@@ -209,17 +208,42 @@ def engineer_transaction_features(transactions: Sequence[Dict]) -> List[Dict]:
         item["senders_to_receiver_24h"] = len({prev["sender_account"] for prev in receiver_24h} | {sender})
         item["count_transfers_just_below_threshold_24h"] = len(just_below)
         item["dormant_days"] = min(item["sender_account_age_days"], int(time_since_last / 86400.0))
-        item["hop_chain_length"] = 1
-        item["time_to_cashout_sec"] = 999999.0
+
+        active_flow = account_flow_state.get(sender)
+        flow_gap_sec = None
+        if active_flow:
+            flow_gap_sec = (ts - active_flow["last_timestamp"]).total_seconds()
+
+        if active_flow and flow_gap_sec is not None and flow_gap_sec <= 1800:
+            hop_chain_length = active_flow["hop_chain_length"] + 1
+            flow_origin_timestamp = active_flow["origin_timestamp"]
+        else:
+            hop_chain_length = 1
+            flow_origin_timestamp = ts
+
+        if item["is_cashout_node"] or item["transaction_type"] == "withdrawal":
+            time_to_cashout_sec = round(max((ts - flow_origin_timestamp).total_seconds(), 0.0), 2)
+        else:
+            time_to_cashout_sec = 999999.0
+
+        item["hop_chain_length"] = hop_chain_length
+        item["time_to_cashout_sec"] = time_to_cashout_sec
 
         enriched.append(item)
         sender_histories[sender].append(item)
         receiver_histories[receiver].append(item)
-        beneficiary_histories[item["beneficiary_id"]].append(item)
-        tx_by_sender_receiver[(sender, receiver)].append(item)
         device_accounts[item["device_id"]].add(sender)
         ip_accounts[item["ip_address"]].add(sender)
         last_sender_geo[sender] = {"geo_lat": item["geo_lat"], "geo_lon": item["geo_lon"], "timestamp": ts}
+
+        if item["transaction_type"] == "transfer" and not item["is_cashout_node"]:
+            account_flow_state[receiver] = {
+                "hop_chain_length": hop_chain_length,
+                "origin_timestamp": flow_origin_timestamp,
+                "last_timestamp": ts,
+            }
+        if sender in account_flow_state:
+            account_flow_state[sender]["last_timestamp"] = ts
 
     return enriched
 
