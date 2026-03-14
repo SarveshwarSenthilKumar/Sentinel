@@ -10,6 +10,8 @@ type CopilotChatPanelProps = {
   title: string;
   helperText: string;
   evidenceLabel: string;
+  statusLabel?: string;
+  statusTone?: "safe" | "review";
   messages: ChatMessage[];
   suggestions: string[];
   input: string;
@@ -27,6 +29,8 @@ export function CopilotChatPanel({
   title,
   helperText,
   evidenceLabel,
+  statusLabel,
+  statusTone = "review",
   messages,
   suggestions,
   input,
@@ -80,6 +84,15 @@ export function CopilotChatPanel({
             <h2 className="mt-2 font-serif text-2xl text-ink">{title}</h2>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
+            {statusLabel ? (
+              <span
+                className={`rounded-full px-4 py-2 text-xs uppercase tracking-[0.18em] ${
+                  statusTone === "safe" ? "bg-safe/10 text-safe" : "bg-review/10 text-review"
+                }`}
+              >
+                {statusLabel}
+              </span>
+            ) : null}
             <span className="rounded-full border border-line bg-paper px-4 py-2 text-xs uppercase tracking-[0.18em] text-muted dark:bg-slate-950/36">
               {evidenceLabel}
             </span>

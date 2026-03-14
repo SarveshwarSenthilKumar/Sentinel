@@ -24,8 +24,10 @@ const alertStyles: Record<LiveAction, string> = {
 
 export function LiveMonitorDashboard({
   initialData,
+  enableStreaming = true,
 }: {
   initialData: LiveMonitorPayload;
+  enableStreaming?: boolean;
 }) {
   const [payload, setPayload] = useState(initialData);
   const [polling, setPolling] = useState(true);
@@ -90,7 +92,7 @@ export function LiveMonitorDashboard({
   }
 
   useEffect(() => {
-    if (!polling) {
+    if (!polling || !enableStreaming) {
       return;
     }
 
@@ -103,7 +105,7 @@ export function LiveMonitorDashboard({
     return () => {
       window.clearInterval(handle);
     };
-  }, [polling]);
+  }, [enableStreaming, polling]);
 
   const prioritizedAlerts = [
     ...payload.alerts.filter((alert) => alert.type === "transaction"),
@@ -146,22 +148,28 @@ export function LiveMonitorDashboard({
         title="Real-time fraud operations"
         eyebrow="Merged live monitor"
         action={
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => setPolling((current) => !current)}
-              className="rounded-full border border-line bg-paper px-4 py-2 text-sm text-ink transition hover:bg-[#efe4d1]"
-            >
-              {polling ? "Pause live stream" : "Resume live stream"}
-            </button>
-            <span className="rounded-full border border-line bg-paper px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted">
-              {isInjectingScenario
-                ? "Injecting..."
-                : lastScenario
-                  ? `Last: ${lastScenario.replace(/_/g, " ")}`
-                  : "Ready"}
+          enableStreaming ? (
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setPolling((current) => !current)}
+                className="rounded-full border border-line bg-paper px-4 py-2 text-sm text-ink transition hover:bg-[#efe4d1]"
+              >
+                {polling ? "Pause live stream" : "Resume live stream"}
+              </button>
+              <span className="rounded-full border border-line bg-paper px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted">
+                {isInjectingScenario
+                  ? "Injecting..."
+                  : lastScenario
+                    ? `Last: ${lastScenario.replace(/_/g, " ")}`
+                    : "Ready"}
+              </span>
+            </div>
+          ) : (
+            <span className="rounded-full border border-line bg-paper px-4 py-2 text-xs uppercase tracking-[0.18em] text-muted">
+              Upload snapshot
             </span>
-          </div>
+          )
         }
       >
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
@@ -186,7 +194,13 @@ export function LiveMonitorDashboard({
                   : "Waiting for stream"}
               </span>
               <span className="rounded-full bg-paper px-4 py-3 text-muted">
-                {isRefreshing ? "Refreshing..." : polling ? "Auto-refresh on" : "Paused"}
+                {enableStreaming
+                  ? isRefreshing
+                    ? "Refreshing..."
+                    : polling
+                      ? "Auto-refresh on"
+                      : "Paused"
+                  : "Static snapshot"}
               </span>
               {payload.active_scenario ? (
                 <span className="rounded-full bg-[#E6EEFF] px-4 py-3 font-medium text-[#2563EB]">
@@ -291,38 +305,40 @@ export function LiveMonitorDashboard({
             </p>
           </div>
         </div>
-        <div className="mt-6 rounded-[22px] border border-line/70 bg-paper/70 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted">Demo scenarios</p>
-              <p className="mt-2 text-sm leading-7 text-muted">
-                Trigger a specific fraud story on demand so the detection flow is reproducible
-                during your demo.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {scenarios.map((scenario) => (
-                <button
-                  key={scenario.key}
-                  type="button"
-                  disabled={isInjectingScenario}
-                  onClick={() => {
-                    startTransition(() => {
-                      void injectScenario(scenario.key);
-                    });
-                  }}
-                  className={`rounded-full px-4 py-2 text-sm transition ${
-                    payload.active_scenario === scenario.key
-                      ? "bg-ink text-paper"
-                      : "border border-line bg-paper text-ink hover:bg-[#efe4d1]"
-                  }`}
-                >
-                  {scenario.label}
-                </button>
-              ))}
+        {enableStreaming ? (
+          <div className="mt-6 rounded-[22px] border border-line/70 bg-paper/70 p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted">Demo scenarios</p>
+                <p className="mt-2 text-sm leading-7 text-muted">
+                  Trigger a specific fraud story on demand so the detection flow is reproducible
+                  during your demo.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {scenarios.map((scenario) => (
+                  <button
+                    key={scenario.key}
+                    type="button"
+                    disabled={isInjectingScenario}
+                    onClick={() => {
+                      startTransition(() => {
+                        void injectScenario(scenario.key);
+                      });
+                    }}
+                    className={`rounded-full px-4 py-2 text-sm transition ${
+                      payload.active_scenario === scenario.key
+                        ? "bg-ink text-paper"
+                        : "border border-line bg-paper text-ink hover:bg-[#efe4d1]"
+                    }`}
+                  >
+                    {scenario.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
       </SectionCard>
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
