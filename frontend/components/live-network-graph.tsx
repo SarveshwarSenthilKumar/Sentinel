@@ -50,10 +50,14 @@ export function LiveNetworkGraph({ graph }: { graph: LiveMonitorGraph }) {
         ? 0.58
         : 0.8;
 
+    // Ensure consistent precision to avoid hydration mismatches
+    const x = Math.round((centerX + Math.cos(angle) * radius) * 100) / 100;
+    const y = Math.round((centerY + Math.sin(angle) * radius * squash) * 100) / 100;
+
     return {
       ...node,
-      x: centerX + Math.cos(angle) * radius,
-      y: centerY + Math.sin(angle) * radius * squash,
+      x,
+      y,
     };
   });
 
