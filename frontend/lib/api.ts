@@ -39,6 +39,12 @@ export function refreshIncidentQueue(batch = 4): Promise<IncidentQueueResponse> 
   return getJson<IncidentQueueResponse>(`/api/incidents/refresh?batch=${batch}`);
 }
 
+export function triggerIncidentScenario(name: string): Promise<IncidentQueueResponse> {
+  return getJson<IncidentQueueResponse>(
+    `/api/incidents/scenario?name=${encodeURIComponent(name)}`,
+  );
+}
+
 export function getIncidentPanel(id: string): Promise<IncidentPanelResponse> {
   return getJson<IncidentPanelResponse>(`/api/incidents/${id}/panel`);
 }
@@ -69,6 +75,10 @@ export function getLiveMonitorBootstrap(): Promise<LiveMonitorPayload> {
 
 export function getLiveMonitorStream(batch = 6): Promise<LiveMonitorPayload> {
   return getJson<LiveMonitorPayload>(`/api/live/stream?batch=${batch}`);
+}
+
+export function triggerLiveMonitorScenario(name: string): Promise<LiveMonitorPayload> {
+  return getJson<LiveMonitorPayload>(`/api/live/scenario?name=${encodeURIComponent(name)}`);
 }
 
 export async function postTransactionChat(

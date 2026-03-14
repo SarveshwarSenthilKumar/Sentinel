@@ -51,6 +51,16 @@ def incidents_refresh(batch: int = Query(default=4, ge=1, le=12)):
     return incident_service.refresh_queue(batch_size=batch)
 
 
+@app.get("/api/incidents/scenario", response_model=IncidentQueueResponse)
+def incidents_scenario(name: str = Query(...)):
+    try:
+        live_monitor_service.trigger_scenario(name)
+        # Get the updated queue without adding more transactions
+        return incident_service.get_queue()
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Scenario not found.") from exc
+
+
 @app.get("/api/incidents/{incident_id}/panel", response_model=IncidentPanelResponse)
 def incident_panel(incident_id: str):
     try:
@@ -100,6 +110,14 @@ def live_monitor_bootstrap():
 @app.get("/api/live/stream", response_model=LiveMonitorPayload)
 def live_monitor_stream(batch: int = Query(default=6, ge=1, le=12)):
     return live_monitor_service.stream(batch_size=batch)
+
+
+@app.get("/api/live/scenario", response_model=LiveMonitorPayload)
+def live_monitor_scenario(name: str = Query(...)):
+    try:
+        return live_monitor_service.trigger_scenario(name)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Scenario not found.") from exc
 
 
 @app.get("/api/transactions/{transaction_id}")

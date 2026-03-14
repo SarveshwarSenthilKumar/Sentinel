@@ -4,7 +4,11 @@ import Link from "next/link";
 import { startTransition, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
-import { getIncidentPanel, refreshIncidentQueue } from "@/lib/api";
+import {
+  getIncidentPanel,
+  refreshIncidentQueue,
+  triggerIncidentScenario,
+} from "@/lib/api";
 import type {
   IncidentPanelResponse,
   IncidentQueueResponse,
@@ -34,6 +38,17 @@ const decisionLabels: Record<LiveAction, string> = {
 const REFRESH_BATCH_SIZE = 6;
 const REFRESH_INTERVAL_MS = 15000;
 const PAGE_SIZE_OPTIONS = [6, 8, 12, 16];
+const SCENARIOS = [
+  { key: "normal", label: "Normal flow" },
+  { key: "account_takeover", label: "Account takeover" },
+  { key: "laundering_ring", label: "Laundering ring" },
+  { key: "smurfing_burst", label: "Smurfing burst" },
+  { key: "vpn_takeover", label: "VPN/IP takeover" },
+  { key: "mule_fanout", label: "Mule fan-out" },
+  { key: "merchant_fraud", label: "Merchant fraud" },
+  { key: "dormant_reactivation", label: "Dormant reactivation" },
+  { key: "cross_border_travel", label: "Cross-border travel" },
+] as const;
 
 type FilterValue = "all" | "block" | "hold" | "review";
 type SortValue = "risk" | "newest";
@@ -61,15 +76,22 @@ export function IncidentQueueWorkspace({
   });
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isPageSizeMenuOpen, setIsPageSizeMenuOpen] = useState(false);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
   const [panel, setPanel] = useState<IncidentPanelResponse | null>(null);
   const [isPanelLoading, setIsPanelLoading] = useState(false);
   const [isClosingPanel, setIsClosingPanel] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInjectingScenario, setIsInjectingScenario] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [queueError, setQueueError] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
+  const [lastScenario, setLastScenario] = useState<string | null>(null);
+  const [injectedIncidentLabels, setInjectedIncidentLabels] = useState<
+    Record<string, string>
+  >({});
   const panelRef = useRef<HTMLElement | null>(null);
+  const pageSizeMenuRef = useRef<HTMLDivElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
 
   function applyPendingQueue() {
@@ -140,6 +162,43 @@ export function IncidentQueueWorkspace({
     }
   }
 
+  async function injectScenario(name: string) {
+    setIsInjectingScenario(true);
+
+    try {
+      const next = await triggerIncidentScenario(name);
+      setQueueError(null);
+      setLastScenario(name);
+      const currentIds = new Set(queue.incidents.map((item) => item.incident_id));
+      const injectedLabels = Object.fromEntries(
+        next.incidents
+          .filter((item) => !currentIds.has(item.incident_id))
+          .map((item) => [item.incident_id, name]),
+      );
+      if (Object.keys(injectedLabels).length) {
+        setInjectedIncidentLabels((current) => ({ ...current, ...injectedLabels }));
+      }
+
+      if (selectedIncidentId) {
+        const freshCount = next.incidents.filter(
+          (item) => !currentIds.has(item.incident_id),
+        ).length;
+
+        setPendingQueue(next);
+        setPendingThreatCount((current) => current + freshCount);
+        return;
+      }
+
+      setQueue(next);
+    } catch {
+      setQueueError(
+        "Scenario injection failed. Keep the backend running and try again.",
+      );
+    } finally {
+      setIsInjectingScenario(false);
+    }
+  }
+
   useEffect(() => {
     if (!selectedIncidentId || isClosingPanel) {
       return;
@@ -195,6 +254,9 @@ export function IncidentQueueWorkspace({
       if (event.key === "Escape" && selectedIncidentId) {
         closePanel();
       }
+      if (event.key === "Escape") {
+        setIsPageSizeMenuOpen(false);
+      }
     }
 
     document.addEventListener("keydown", handleKeyDown);
@@ -203,6 +265,23 @@ export function IncidentQueueWorkspace({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isClosingPanel, selectedIncidentId]);
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        pageSizeMenuRef.current &&
+        !pageSizeMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsPageSizeMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -382,6 +461,43 @@ export function IncidentQueueWorkspace({
             </div>
           </div>
 
+          <div className="mt-4 rounded-[22px] border border-line/50 bg-canvas/76 px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted">
+                  Scenario injector
+                </p>
+                <p className="mt-1 text-sm text-muted">
+                  Keep the stream running and inject a known pattern to verify the model reacts the way you expect.
+                </p>
+              </div>
+              <span className="rounded-full border border-line bg-paper px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted">
+                {isInjectingScenario
+                  ? "Injecting..."
+                  : lastScenario
+                    ? `Last: ${lastScenario.replace(/_/g, " ")}`
+                    : "Ready"}
+              </span>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {SCENARIOS.map((scenario) => (
+                <button
+                  key={scenario.key}
+                  type="button"
+                  disabled={isInjectingScenario}
+                  onClick={() => {
+                    startTransition(() => {
+                      void injectScenario(scenario.key);
+                    });
+                  }}
+                  className="rounded-full border border-line bg-paper px-4 py-2 text-sm text-ink transition hover:bg-canvas disabled:cursor-wait disabled:opacity-60"
+                >
+                  {scenario.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2 text-sm">
               {[
@@ -400,20 +516,67 @@ export function IncidentQueueWorkspace({
               ))}
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm text-muted">
+              <div
+                ref={pageSizeMenuRef}
+                className={`relative flex items-center gap-2 text-sm text-muted ${
+                  isPageSizeMenuOpen ? "z-[120]" : "z-10"
+                }`}
+              >
                 <span>Per page</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(event) => setItemsPerPage(Number(event.target.value))}
-                  className="rounded-full border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition hover:bg-canvas focus:border-accent"
+                <button
+                  type="button"
+                  onClick={() => setIsPageSizeMenuOpen((current) => !current)}
+                  className="inline-flex min-w-[84px] items-center justify-between gap-3 rounded-full border border-line bg-paper px-4 py-2 text-sm font-medium text-ink shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:bg-canvas"
                 >
-                  {PAGE_SIZE_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  <span>{itemsPerPage}</span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`transition ${isPageSizeMenuOpen ? "rotate-180" : ""}`}
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3 5.25L7 9.25L11 5.25"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                {isPageSizeMenuOpen ? (
+                  <div className="absolute right-0 top-[calc(100%+10px)] z-[140] min-w-[92px]">
+                    <div className="absolute inset-0 rounded-[20px] bg-canvas" />
+                    <div className="relative overflow-hidden rounded-[20px] border border-line/90 bg-elevated p-2 shadow-[0_22px_44px_rgba(15,23,42,0.18)]">
+                    {PAGE_SIZE_OPTIONS.map((option) => {
+                      const active = option === itemsPerPage;
+
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => {
+                            setItemsPerPage(option);
+                            setIsPageSizeMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 text-sm transition ${
+                            active
+                              ? "bg-ink text-paper"
+                              : "text-ink hover:bg-paper"
+                          }`}
+                        >
+                          <span>{option}</span>
+                          {active ? <span className="text-xs uppercase tracking-[0.16em]">Set</span> : null}
+                        </button>
+                      );
+                    })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
               <span className="text-sm text-muted">
                 Showing {visibleRangeStart}-{visibleRangeEnd} of {incidents.length} incidents
               </span>
@@ -574,6 +737,10 @@ export function IncidentQueueWorkspace({
               {visibleIncidents.length ? (
                 visibleIncidents.map((incident) => {
                 const selected = incident.incident_id === selectedIncidentId;
+                const injectedScenario =
+                  incident.injected_scenario ?? injectedIncidentLabels[incident.incident_id];
+                const isManuallyInjected =
+                  incident.manually_injected || Boolean(injectedScenario);
 
                 return (
                   <button
@@ -597,6 +764,11 @@ export function IncidentQueueWorkspace({
                           >
                             {decisionLabels[incident.decision]}
                           </span>
+                          {isManuallyInjected ? (
+                            <span className="inline-flex rounded-full bg-[#E6EEFF] px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-[#2563EB]">
+                              Demo inject
+                            </span>
+                          ) : null}
                         </div>
                         <p className="mt-1.5 text-sm text-muted">
                           {formatRelativeIncidentTime(incident.generated_at)} ·{" "}
@@ -605,6 +777,11 @@ export function IncidentQueueWorkspace({
                         <p className="mt-1 truncate text-sm text-muted">
                           {incident.counterpart_label}
                         </p>
+                        {isManuallyInjected && injectedScenario ? (
+                          <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#2563EB]">
+                            Scenario: {injectedScenario.replace(/_/g, " ")}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="text-right">
                         <p className="font-serif text-[2rem] leading-none text-ink">
@@ -1050,15 +1227,23 @@ function InfoBadge({
 }
 
 function riskColor(value: number) {
-  if (value >= 0.75) {
-    return "#c2410c";
+  if (value <= 0.15) {
+    return "#15803d";
   }
 
-  if (value >= 0.45) {
-    return "#b7791f";
+  if (value <= 0.4) {
+    return "#65a30d";
   }
 
-  return "#0f766e";
+  if (value <= 0.65) {
+    return "#ca8a04";
+  }
+
+  if (value <= 0.85) {
+    return "#ea580c";
+  }
+
+  return "#dc2626";
 }
 
 function PanelBlock({

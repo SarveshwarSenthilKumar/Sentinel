@@ -6,7 +6,7 @@ This project (Sentinel) is a demo-first fraud analyst console for hackathon judg
 
 - Frontend: Next.js, TypeScript, Tailwind, Cytoscape.js, Recharts
 - Backend: FastAPI, Python, pandas, scikit-learn, networkx
-- AI: OpenAI API for explanations only
+- AI: OpenAI-compatible chat completions with deterministic fallback mode
 
 ## Project Layout
 
@@ -38,6 +38,8 @@ uvicorn app.main:app --reload
 ```
 
 Backend runs on `http://127.0.0.1:8000`.
+
+The backend reads environment variables from either the repo root `.env` or `backend/.env`.
 
 Useful backend routes:
 
@@ -123,10 +125,10 @@ Set this environment variable in Vercel:
 
 OpenAI is optional for local development. If `OPENAI_API_KEY` is not set, Sentinel falls back to deterministic explanations.
 
-```bash
-export OPENAI_API_KEY=your_key_here
-export OPENAI_MODEL=gpt-4o-mini
-export OPENAI_BASE_URL=https://vjioo4r1vyvcozuj.us-east-2.aws.endpoints.huggingface.cloud/v1
+Include in `backend/.env` the following lines:
+```
+OPENAI_API_KEY="EMPTY"
+OPENAI_MODEL = "openai/gpt-oss-120b"
 ```
 
 ## Demo Cases

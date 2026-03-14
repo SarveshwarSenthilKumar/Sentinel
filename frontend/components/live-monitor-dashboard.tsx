@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { startTransition, useEffect, useRef, useState } from "react";
 
-import { getLiveMonitorStream } from "@/lib/api";
+import { getLiveMonitorStream, triggerLiveMonitorScenario } from "@/lib/api";
 import type { LiveAction, LiveMonitorPayload } from "@/lib/types";
 
 import { LiveNetworkGraph } from "./live-network-graph";
@@ -32,10 +32,23 @@ export function LiveMonitorDashboard({
   const [payload, setPayload] = useState(initialData);
   const [polling, setPolling] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInjectingScenario, setIsInjectingScenario] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [minimumRisk, setMinimumRisk] = useState(65);
   const [actionFilter, setActionFilter] = useState<"all" | LiveAction>("all");
+  const [lastScenario, setLastScenario] = useState<string | null>(null);
   const inFlightRef = useRef(false);
+  const scenarios = [
+    { key: "normal", label: "Normal flow" },
+    { key: "account_takeover", label: "Account takeover" },
+    { key: "laundering_ring", label: "Laundering ring" },
+    { key: "smurfing_burst", label: "Smurfing burst" },
+    { key: "vpn_takeover", label: "VPN/IP takeover" },
+    { key: "mule_fanout", label: "Mule fan-out" },
+    { key: "merchant_fraud", label: "Merchant fraud" },
+    { key: "dormant_reactivation", label: "Dormant reactivation" },
+    { key: "cross_border_travel", label: "Cross-border travel" },
+  ];
 
   async function refresh(batch: number) {
     if (inFlightRef.current) {
@@ -57,6 +70,27 @@ export function LiveMonitorDashboard({
     }
   }
 
+  async function injectScenario(name: string) {
+    if (inFlightRef.current) {
+      return;
+    }
+
+    inFlightRef.current = true;
+    setIsInjectingScenario(true);
+
+    try {
+      const next = await triggerLiveMonitorScenario(name);
+      setPayload(next);
+      setLastScenario(name);
+      setError(null);
+    } catch {
+      setError("Scenario injection failed. Keep the backend running and try again.");
+    } finally {
+      inFlightRef.current = false;
+      setIsInjectingScenario(false);
+    }
+  }
+
   useEffect(() => {
     if (!polling || !enableStreaming) {
       return;
@@ -71,7 +105,7 @@ export function LiveMonitorDashboard({
     return () => {
       window.clearInterval(handle);
     };
-  }, [polling]);
+  }, [enableStreaming, polling]);
 
   const prioritizedAlerts = [
     ...payload.alerts.filter((alert) => alert.type === "transaction"),
@@ -123,17 +157,13 @@ export function LiveMonitorDashboard({
               >
                 {polling ? "Pause live stream" : "Resume live stream"}
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  startTransition(() => {
-                    void refresh(12);
-                  });
-                }}
-                className="rounded-full bg-ink px-4 py-2 text-sm text-paper transition hover:opacity-90"
-              >
-                Inject suspicious burst
-              </button>
+              <span className="rounded-full border border-line bg-paper px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted">
+                {isInjectingScenario
+                  ? "Injecting..."
+                  : lastScenario
+                    ? `Last: ${lastScenario.replace(/_/g, " ")}`
+                    : "Ready"}
+              </span>
             </div>
           ) : (
             <span className="rounded-full border border-line bg-paper px-4 py-2 text-xs uppercase tracking-[0.18em] text-muted">
@@ -172,6 +202,11 @@ export function LiveMonitorDashboard({
                       : "Paused"
                   : "Static snapshot"}
               </span>
+              {payload.active_scenario ? (
+                <span className="rounded-full bg-[#E6EEFF] px-4 py-3 font-medium text-[#2563EB]">
+                  Scenario: {payload.active_scenario.replace(/_/g, " ")}
+                </span>
+              ) : null}
             </div>
             {error ? (
               <p className="rounded-[18px] border border-block/20 bg-block/5 px-4 py-3 text-sm text-block">
@@ -270,6 +305,40 @@ export function LiveMonitorDashboard({
             </p>
           </div>
         </div>
+        {enableStreaming ? (
+          <div className="mt-6 rounded-[22px] border border-line/70 bg-paper/70 p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted">Demo scenarios</p>
+                <p className="mt-2 text-sm leading-7 text-muted">
+                  Trigger a specific fraud story on demand so the detection flow is reproducible
+                  during your demo.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {scenarios.map((scenario) => (
+                  <button
+                    key={scenario.key}
+                    type="button"
+                    disabled={isInjectingScenario}
+                    onClick={() => {
+                      startTransition(() => {
+                        void injectScenario(scenario.key);
+                      });
+                    }}
+                    className={`rounded-full px-4 py-2 text-sm transition ${
+                      payload.active_scenario === scenario.key
+                        ? "bg-ink text-paper"
+                        : "border border-line bg-paper text-ink hover:bg-[#efe4d1]"
+                    }`}
+                  >
+                    {scenario.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </SectionCard>
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
