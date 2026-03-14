@@ -146,6 +146,26 @@ export function LiveMonitorDashboard({
         action={
           enableStreaming ? (
             <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 rounded-full border border-line bg-paper px-4 py-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm text-ink">Auto-refresh</span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={polling}
+                      onChange={(e) => setPolling(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`h-5 w-9 rounded-full transition-colors ${
+                      polling ? 'bg-[#b6432c]' : 'bg-line'
+                    }`}>
+                      <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                        polling ? 'translate-x-4' : 'translate-x-0.5'
+                      }`} />
+                    </div>
+                  </div>
+                </label>
+              </div>
               <button
                 type="button"
                 onClick={() => setPolling((current) => !current)}
@@ -189,13 +209,19 @@ export function LiveMonitorDashboard({
                   ? `Updated ${new Date(payload.generated_at).toLocaleTimeString()}`
                   : "Waiting for stream"}
               </span>
-              <span className="rounded-full bg-paper px-4 py-3 text-muted">
+              <span className={`rounded-full px-4 py-3 font-medium ${
+                enableStreaming
+                  ? polling
+                    ? "bg-[#E6F7E6] text-[#166534]"
+                    : "bg-[#FEF3E2] text-[#92400E]"
+                  : "bg-paper text-muted"
+              }`}>
                 {enableStreaming
                   ? isRefreshing
                     ? "Refreshing..."
                     : polling
-                      ? "Auto-refresh on"
-                      : "Paused"
+                      ? "● Auto-refresh on"
+                      : "○ Auto-refresh off"
                   : "Static snapshot"}
               </span>
               {payload.active_scenario ? (
