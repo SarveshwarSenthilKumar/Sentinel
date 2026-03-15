@@ -41,21 +41,21 @@ export default function DocumentationPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar Navigation */}
           <nav className="lg:col-span-1">
-            <div className="sticky top-24 space-y-2">
+            <div className="sticky top-24 space-y-1">
               {sections.map((section) => {
                 const Icon = section.icon;
                 return (
                   <button
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors border ${
+                    className={`w-full flex items-center space-x-3 px-3 py-2 text-left transition-colors border-l-4 ${
                       activeSection === section.id
-                        ? "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600"
-                        : "border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                        ? "bg-slate-100 dark:bg-slate-800 border-l-slate-600 dark:border-l-slate-400 text-slate-900 dark:text-slate-100"
+                        : "border-l-transparent hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400"
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
-                    <span className="font-medium">{section.title}</span>
+                    <Icon className="h-4 w-4" />
+                    <span className="font-medium text-sm">{section.title}</span>
                   </button>
                 );
               })}
