@@ -31,7 +31,7 @@
 
 ## Product Preview
 
-![Sentinel network replay](docs/images/sentinel-network-replay.png)
+![Sentinel network replay](docs/images/network.png)
 
 <p align="center">
   <em>Current preview: a full-screen network replay view for tracing suspicious money movement and exposed mule paths.</em>
