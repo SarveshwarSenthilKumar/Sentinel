@@ -20,7 +20,7 @@ const config: Config = {
         block: "var(--color-block)",
         panel: "var(--color-panel)",
         muted: "var(--color-muted)",
-        line: "var(--color-line)",
+        line: "rgb(var(--color-line-rgb) / <alpha-value>)",
         accent: "var(--color-accent)",
       },
       boxShadow: {

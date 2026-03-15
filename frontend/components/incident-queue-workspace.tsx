@@ -1205,7 +1205,7 @@ function InfoBadge({
   return (
     <span className="group relative inline-flex">
       <span
-        className="inline-flex h-[19px] w-[19px] cursor-help items-center justify-center rounded-full border border-slate-400/80 bg-white text-[11px] font-semibold leading-none text-slate-600 shadow-sm"
+        className="inline-flex h-[19px] w-[19px] cursor-help items-center justify-center rounded-full border border-slate-400/80 bg-white text-[11px] font-semibold leading-none text-slate-600 shadow-sm dark:border-line/80 dark:bg-surface dark:text-slate-200 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_6px_18px_rgba(0,0,0,0.28)]"
         aria-label={description}
         tabIndex={0}
       >
