@@ -909,8 +909,9 @@ export function CytoscapeGraph({ graph, enableReplay = false }: CytoscapeGraphPr
       setSelection(null);
       setHoveredEdge(null);
       cytoscapeRef.current = null;
-      instance.off();
-      instance.destroy();
+      if (!instance.destroyed()) {
+        instance.destroy();
+      }
     };
   }, [layoutOptions, resolvedTheme]);
 
