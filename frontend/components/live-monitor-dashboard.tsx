@@ -169,7 +169,11 @@ export function LiveMonitorDashboard({
               <button
                 type="button"
                 onClick={() => setPolling((current) => !current)}
-                className="rounded-full border border-line bg-paper px-4 py-2 text-sm text-ink transition hover:bg-[#efe4d1]"
+                className={`rounded-full border px-4 py-2 text-sm transition ${
+                  polling
+                    ? "border-white/80 bg-white text-slate-950 hover:bg-white"
+                    : "border-line bg-paper text-ink hover:bg-paper"
+                }`}
               >
                 {polling ? "Pause live stream" : "Resume live stream"}
               </button>
