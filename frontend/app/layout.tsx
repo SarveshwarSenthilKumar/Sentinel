@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AppShellHeader } from "@/components/app-shell-header";
+import { ScrollIndicator } from "@/components/scroll-indicator";
 import { ThemeProvider } from "@/components/theme-provider";
 
 import "./globals.css";
@@ -29,6 +30,7 @@ export default function RootLayout({
             <AppShellHeader />
             {children}
           </div>
+          <ScrollIndicator />
         </ThemeProvider>
       </body>
     </html>
