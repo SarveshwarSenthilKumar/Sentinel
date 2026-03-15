@@ -76,18 +76,15 @@ export function IncidentChat({ incidentId, decision }: IncidentChatProps) {
   return (
     <CopilotChatPanel
       panelId="sentinel-assist"
-      eyebrow="Sentinel Assist"
-      title="Ask about this incident"
+      eyebrow="Sentinel Assistant"
+      title="Incident chat"
       helperText={helperText}
-      evidenceLabel="grounded in queue evidence"
       messages={messages}
       suggestions={suggestions}
       input={input}
       isPending={isPending}
-      statusLabel={mode === "openai" ? "Live OpenAI" : "Fallback mode"}
-      statusTone={mode === "openai" ? "safe" : "review"}
       pendingLabel="OpenAI is drafting a grounded answer..."
-      placeholder="Ask what drove the escalation, which signals are strongest, or what to verify next."
+      placeholder="Ask Sentinel why this was escalated, which signal mattered most, or what to verify next."
       onInputChange={setInput}
       onSuggestionClick={sendMessage}
       onSubmit={() => sendMessage(input)}

@@ -127,6 +127,7 @@ class IncidentService:
     def get_incident_graph(self, incident_id: str) -> GraphResponse:
         alert = self._find_alert(incident_id)
         snapshot = live_monitor_service.current_snapshot()
+        graph_transactions = snapshot.enriched
         focus_accounts = set(alert.accounts_involved)
         if alert.sender_account:
             focus_accounts.add(alert.sender_account)
@@ -187,11 +188,13 @@ class IncidentService:
         edges = list(edges_by_id.values())
         suspicious_nodes = sorted(
             node_id
-            for node_id in nodes
+            for tx in graph_transactions
+            for node_id in (tx["sender_account"], tx["receiver_account"])
             if node_id.startswith("MULE") or node_id.startswith("CASH")
         )
         metrics = self._incident_graph_metrics(
             relevant=relevant,
+            graph_transactions=graph_transactions,
             recipient_account=alert.receiver_account,
             highlighted_nodes=highlighted_nodes,
             suspicious_nodes=suspicious_nodes,
@@ -497,11 +500,13 @@ class IncidentService:
     def _incident_graph_metrics(
         self,
         relevant: list[dict[str, Any]],
+        graph_transactions: list[dict[str, Any]],
         recipient_account: str | None,
         highlighted_nodes: set[str],
         suspicious_nodes: list[str],
     ) -> GraphSignals:
         account_graph = nx.DiGraph()
+        distance_graph = nx.DiGraph()
         timestamps_by_edge: list[tuple[str, str, datetime]] = []
 
         for tx in relevant:
@@ -514,19 +519,29 @@ class IncidentService:
                 continue
             timestamps_by_edge.append((sender, receiver, parsed))
 
+        for tx in graph_transactions:
+            distance_graph.add_edge(tx["sender_account"], tx["receiver_account"])
+
         distance: int | None = None
-        if recipient_account and recipient_account in account_graph and suspicious_nodes:
-            undirected = account_graph.to_undirected()
+        distance_sources = sorted(
+            node_id for node_id in highlighted_nodes if node_id in distance_graph
+        )
+        if recipient_account and recipient_account in distance_graph:
+            distance_sources = sorted({*distance_sources, recipient_account})
+
+        if distance_sources and suspicious_nodes:
+            undirected = distance_graph.to_undirected()
             candidate_distances: list[int] = []
-            for suspicious in suspicious_nodes:
-                if suspicious not in undirected:
-                    continue
-                try:
-                    candidate_distances.append(
-                        nx.shortest_path_length(undirected, recipient_account, suspicious)
-                    )
-                except nx.NetworkXNoPath:
-                    continue
+            for source in distance_sources:
+                for suspicious in suspicious_nodes:
+                    if suspicious not in undirected:
+                        continue
+                    try:
+                        candidate_distances.append(
+                            nx.shortest_path_length(undirected, source, suspicious)
+                        )
+                    except nx.NetworkXNoPath:
+                        continue
             if candidate_distances:
                 distance = min(candidate_distances)
 

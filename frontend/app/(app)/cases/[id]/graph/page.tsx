@@ -54,8 +54,8 @@ export default async function GraphPage({
                 Suspicious cluster
               </p>
               <ul className="mt-3 space-y-2 text-sm text-muted">
-                {graph.suspicious_cluster_ids.map((nodeId) => (
-                  <li key={nodeId}>- {nodeId}</li>
+                {graph.suspicious_cluster_ids.map((nodeId, index) => (
+                  <li key={`${nodeId}-${index}`}>- {nodeId}</li>
                 ))}
               </ul>
             </div>

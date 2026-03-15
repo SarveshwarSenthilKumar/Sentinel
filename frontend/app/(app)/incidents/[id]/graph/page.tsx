@@ -87,7 +87,9 @@ export default async function IncidentGraphPage({
                   </p>
                   <ul className="mt-3 space-y-2 text-sm text-muted">
                     {graph.highlighted_node_ids.length ? (
-                      graph.highlighted_node_ids.map((nodeId) => <li key={nodeId}>- {nodeId}</li>)
+                      graph.highlighted_node_ids.map((nodeId, index) => (
+                        <li key={`${nodeId}-${index}`}>- {nodeId}</li>
+                      ))
                     ) : (
                       <li>- None highlighted in this view</li>
                     )}
@@ -99,7 +101,9 @@ export default async function IncidentGraphPage({
                   </p>
                   <ul className="mt-3 space-y-2 text-sm text-muted">
                     {graph.suspicious_cluster_ids.length ? (
-                      graph.suspicious_cluster_ids.map((nodeId) => <li key={nodeId}>- {nodeId}</li>)
+                      graph.suspicious_cluster_ids.map((nodeId, index) => (
+                        <li key={`${nodeId}-${index}`}>- {nodeId}</li>
+                      ))
                     ) : (
                       <li>- None in current snapshot slice</li>
                     )}

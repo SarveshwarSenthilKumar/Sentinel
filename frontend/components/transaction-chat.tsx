@@ -79,16 +79,13 @@ export function TransactionChat({
   return (
     <CopilotChatPanel
       panelId="sentinel-assist"
-      eyebrow="Sentinel Assist"
-      title="Ask about this transaction"
+      eyebrow="Sentinel Assistant"
+      title="Transaction chat"
       helperText={helperText}
-      evidenceLabel="grounded in Sentinel signals"
       messages={messages}
       suggestions={suggestions}
       input={input}
       isPending={isPending}
-      statusLabel={mode === "openai" ? "Live OpenAI" : "Fallback mode"}
-      statusTone={mode === "openai" ? "safe" : "review"}
       pendingLabel="OpenAI is drafting a grounded answer..."
       placeholder="Ask why the transfer was flagged, what the graph means, or which signals mattered most."
       onInputChange={setInput}
