@@ -408,6 +408,19 @@ export function LandingPage() {
         </div>
       </section>
 
+      <div className="relative my-12">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
+        </div>
+        <div className="relative flex justify-center">
+          <div className="rounded-full border border-white/20 bg-white/5 px-6 py-3 backdrop-blur-sm">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/70">
+              How It Works
+            </p>
+          </div>
+        </div>
+      </div>
+
       <section className="relative">
         <div className="relative mx-auto max-w-[1280px] px-6 pb-16 pt-8 sm:px-8 lg:px-10 lg:pb-20 lg:pt-12">
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
@@ -444,6 +457,19 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      <div className="relative my-12">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
+        </div>
+        <div className="relative flex justify-center">
+          <div className="rounded-full border border-white/20 bg-white/5 px-6 py-3 backdrop-blur-sm">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/70">
+              The Problem We Solve
+            </p>
+          </div>
+        </div>
+      </div>
 
       <SystemOverviewSection />
     </main>
