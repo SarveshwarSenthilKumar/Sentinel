@@ -40,3 +40,4 @@ build/
 
 # others
 tmp/
+.VSCodeCounter
