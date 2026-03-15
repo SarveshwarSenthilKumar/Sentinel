@@ -8,7 +8,8 @@
     "dev:fresh": "npm run clean && next dev",
     "reset": "npm run clean",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "vercel-build": "next build"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

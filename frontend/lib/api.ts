@@ -16,15 +16,41 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  if (!response.ok) {
-    throw new Error(`Request failed for ${path}: ${response.status}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      cache: "no-store",
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Request failed for ${path}: ${response.status}`);
+    }
+
+    return response.json() as Promise<T>;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
   }
+}
 
-  return response.json() as Promise<T>;
+export async function getJsonWithRetry<T>(path: string, retries = 3): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await getJson<T>(path);
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
+  }
+  throw new Error('Max retries exceeded');
 }
 
 export function getDashboardSummary(): Promise<DashboardSummary> {
