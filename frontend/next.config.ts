@@ -12,10 +12,13 @@ const nextConfig: NextConfig = {
   
   // CORS handling for API routes
   async rewrites() {
+    const apiBase =
+      process.env.NEXT_PUBLIC_API_BASE_URL ??
+      "https://sentinel-h2ef.onrender.com";
     return [
       {
         source: '/api/:path*',
-        destination: 'https://sentinel-thjc.onrender.com/api/:path*',
+        destination: `${apiBase}/api/:path*`,
       },
     ];
   },
